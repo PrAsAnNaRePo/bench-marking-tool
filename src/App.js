@@ -1,60 +1,37 @@
 import React, { useState } from 'react';
 import { Container, Typography, Paper, Button, Box } from '@mui/material';
 import PdfUploader from './components/PdfUploader';
-import PdfPageList from './components/PdfPageList';
+import TableAnnotator from './components/TableAnnotator';
 import exportJson from './utils/exportJson';
 
 function App() {
   const [pdfFile, setPdfFile] = useState(null);
   const [fileName, setFileName] = useState('');
-  const [selectedPages, setSelectedPages] = useState([]); // All loaded pages
-  const [pagesMarked, setPagesMarked] = useState([]); // [{pg_no, tags: []}, ...]
-  const [markedPages, setMarkedPages] = useState([]); // Pages the user has actively marked
+  const [selectedPages, setSelectedPages] = useState([]); // loaded pages
+  const [annotationData, setAnnotationData] = useState([]); // table annotations
 
   const handleUpload = (file, pages) => {
     setPdfFile(file);
     setFileName(file.name);
     setSelectedPages(pages);
-    setPagesMarked(pages.map(pg => ({ pg_no: pg, tags: [] })));
-    setMarkedPages([]);
-  };
-
-  // Ensure pagesMarked stays in sync with selectedPages
-  React.useEffect(() => {
-    setPagesMarked(marks =>
-      selectedPages.map(pg_no => {
-        const found = marks.find(m => m.pg_no === pg_no);
-        return found ? found : { pg_no, tags: [] };
-      })
-    );
-  }, [selectedPages]);
-
-  // Mark/unmark a page as selected for export
-  const handlePageSelect = (pg_no) => {
-    setMarkedPages(prev => {
-      if (prev.includes(pg_no)) {
-        return prev.filter(p => p !== pg_no);
-      } else {
-        return [...prev, pg_no];
-      }
-    });
-  };
-
-  const handleTagsChange = (pg_no, tags) => {
-    setPagesMarked(marks => marks.map(m => m.pg_no === pg_no ? { ...m, tags } : m));
+    setAnnotationData([]);
   };
 
   const handleExport = () => {
-    const filteredPagesMarked = pagesMarked
-      .filter(m => markedPages.includes(m.pg_no))
-      .map(m => ({ pg_no: m.pg_no, tags: m.tags }));
+    const data = annotationData.flatMap(pd =>
+      pd.boxes.filter(b => b.selected).map(b => ({
+        pg_no: pd.pg_no,
+        tables_image: b.tables_image,
+        bbox_data: b.bbox_data,
+        tags: b.tags
+      }))
+    );
     exportJson({
       file_name: fileName,
-      selected_pages: markedPages,
-      pages_marked: filteredPagesMarked
+      selected_pages: selectedPages,
+      data
     });
   };
-
 
   return (
     <Container maxWidth="md" sx={{ py: 4 }}>
@@ -66,16 +43,14 @@ function App() {
       </Paper>
       {pdfFile && selectedPages.length > 0 && (
         <Box>
-          <PdfPageList
+          <TableAnnotator
             pdfFile={pdfFile}
             selectedPages={selectedPages}
-            pagesMarked={pagesMarked}
-            markedPages={markedPages}
-            onPageSelect={handlePageSelect}
-            onTagsChange={handleTagsChange}
+            backendUrl="http://localhost:8000/predict"
+            onAnnotationDataChange={setAnnotationData}
           />
           <Button variant="contained" color="primary" sx={{ mt: 2 }} onClick={handleExport}>
-            Export Selection as JSON
+            Download Annotations as JSON
           </Button>
         </Box>
       )}
