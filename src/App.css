@@ -1,0 +1,23 @@
+body {
+  margin: 0;
+  font-family: 'Roboto', 'Helvetica', 'Arial', sans-serif;
+  background: #f5f6fa;
+}
+
+#root {
+  min-height: 100vh;
+  background: #f5f6fa;
+}
+
+.MuiPaper-root {
+  border-radius: 12px;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  background: #eee;
+}
+::-webkit-scrollbar-thumb {
+  background: #ccc;
+  border-radius: 4px;
+}
